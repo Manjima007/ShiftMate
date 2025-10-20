@@ -1,0 +1,12 @@
+﻿{
+  "name": "api-core",
+  "version": "1.0.0",
+  "description": "Main API for Bookings and Users",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

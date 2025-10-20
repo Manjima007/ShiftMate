@@ -1,0 +1,42 @@
+﻿version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user_mp
+      POSTGRES_PASSWORD: password_mp
+      POSTGRES_DB: movers_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
+
+  api:
+    build:
+      context: ./services/api-core
+      dockerfile: Dockerfile
+    container_name: api_core
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://user_mp:password_mp@db:5432/movers_db
+      PORT: 3000
+      AI_SERVICE_URL: http://ai:8000
+    depends_on:
+      - db
+
+  ai:
+    build:
+      context: ./services/ai-model
+      dockerfile: Dockerfile
+    container_name: ai_model
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+
+volumes:
+  postgres_data:
