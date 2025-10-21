@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShiftMate AI - Object Detection Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
+        .upload-area.dragging {
+            border-color: #764ba2;
+            background: #e8e9ff;
+        }
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 10px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .preview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            display: none;
+        }
+        .results.show {
+            display: block;
+        }
+        .result-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚚 ShiftMate AI Detection</h1>
+        <p class="subtitle">Upload an image of furniture or household items for AI-powered detection</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📸</div>
+            <h3>Click to upload or drag & drop</h3>
+            <p>JPG, PNG (Max 5MB)</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png">
+        </div>
+
+        <div class="preview" id="preview"></div>
+
+        <button id="detectBtn" disabled>🔍 Detect Objects</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>AI is analyzing your image...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <h2>Detection Results</h2>
+            <div class="stats" id="stats"></div>
+            <div id="itemsList"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const detectBtn = document.getElementById('detectBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const stats = document.getElementById('stats');
+        const itemsList = document.getElementById('itemsList');
+
+        let selectedFile = null;
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // File selection
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (!file.type.match('image/(jpeg|png)')) {
+                showError('Please upload a JPG or PNG image');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                showError('Image must be less than 5MB');
+                return;
+            }
+
+            selectedFile = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+
+            detectBtn.disabled = false;
+            results.classList.remove('show');
+            error.classList.remove('show');
+        }
+
+        detectBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            loading.classList.add('show');
+            results.classList.remove('show');
+            error.classList.remove('show');
+            detectBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/v1/ai/detect', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || `Server error: ${response.status}`);
+                }
+
+                displayResults(data);
+            } catch (err) {
+                console.error('Detection error:', err);
+                showError(`Detection failed: ${err.message}`);
+            } finally {
+                loading.classList.remove('show');
+                detectBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            console.log('Response data:', data); // Debug log
+            
+            // Handle both old and new response formats
+            const totalVolume = (data.total_volume_cubic_meters || data.total_volume || 0).toFixed(2);
+            const itemCount = data.items_detected || data.detected_items?.length || 0;
+            const processingTime = (data.processing_time_ms || data.processing_time || 0).toFixed(0);
+
+            stats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${itemCount}</div>
+                    <div class="stat-label">Items Detected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalVolume}m³</div>
+                    <div class="stat-label">Total Volume</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${processingTime}ms</div>
+                    <div class="stat-label">Processing Time</div>
+                </div>
+            `;
+
+            // Items list
+            const items = data.detected_items || data.items || [];
+            if (items.length === 0) {
+                itemsList.innerHTML = '<p style="text-align:center; color:#999; padding:20px;">No items detected in the image. Try uploading an image with furniture or household items.</p>';
+            } else {
+                itemsList.innerHTML = items.map(item => `
+                    <div class="result-item">
+                        <h3 style="color: #667eea; margin-bottom: 10px;">
+                            ${item.class_name || item.name || 'Unknown'} 
+                            <span style="color: #999; font-size: 0.9em;">(${((item.confidence || 0) * 100).toFixed(1)}% confidence)</span>
+                        </h3>
+                        <p><strong>Volume:</strong> ${(item.volume_cubic_meters || item.volume || 0).toFixed(3)} m³</p>
+                        <p><strong>Category:</strong> ${item.category || 'Unknown'}</p>
+                        <p><strong>Fragility:</strong> ${item.fragility || 'Unknown'}</p>
+                        ${item.bbox ? `<p style="color: #666; font-size: 0.9em; margin-top: 5px;">
+                            Position: [${item.bbox.x1}, ${item.bbox.y1}, ${item.bbox.x2}, ${item.bbox.y2}]
+                        </p>` : ''}
+                    </div>
+                `).join('');
+            }
+
+            results.classList.add('show');
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('show');
+        }
+    </script>
+</body>
+</html>
