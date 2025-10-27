@@ -1,47 +1,55 @@
-# 🚚 ShiftMate - AI-Powered Moving & Packing Platform
+# 🚚 ShiftMate - AI-Powered Moving & Storage Management
 
-> A modern, intelligent platform for movers and packers with AI-driven item detection and volume estimation.
+> A modern, intelligent platform for moving and storage services with AI-driven object detection and volume calculation.
 
 ## 📋 Overview
 
-ShiftMate is a comprehensive moving and packing service platform that leverages AI/ML for automatic item detection and volume estimation from images. The platform consists of microservices architecture with separate services for AI processing, core business logic, and separate web applications for customers and administrators.
+ShiftMate is a comprehensive moving and storage management platform that leverages AI/ML for automatic item detection and volume estimation from images. The platform features a microservices architecture with dedicated services for AI processing and core business logic, complemented by a modern React-based frontend.
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Customer App   │     │   Admin App     │     │                 │
-│   (React/Vue)   │────▶│   (React/Vue)   │────▶│   API Core      │
-└─────────────────┘     └─────────────────┘     │   (Node.js)     │
-                                                 │   Port: 3000    │
-                                                 └────────┬────────┘
-                                                          │
-                                    ┌─────────────────────┼─────────────────────┐
-                                    │                     │                     │
-                                    ▼                     ▼                     ▼
-                            ┌───────────────┐     ┌──────────────┐    ┌──────────────┐
-                            │  AI Model     │     │  PostgreSQL  │    │   Payment    │
-                            │  (FastAPI)    │     │  Database    │    │   Gateway    │
-                            │  Port: 8000   │     │  Port: 5432  │    │              │
-                            └───────────────┘     └──────────────┘    └──────────────┘
+┌─────────────────────────┐
+│   React Frontend        │
+│   (Vite + React 18)     │
+│   Port: 5174            │
+└──────────┬──────────────┘
+           │
+           ▼
+┌──────────────────────────┐     ┌────────────────────┐
+│      API Core            │────▶│    SQLite DB       │
+│   (Node.js + Express)    │     │    (Prisma ORM)    │
+│      Port: 3000          │     └────────────────────┘
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│    AI Model Service      │
+│  (FastAPI + YOLOv8n)     │
+│      Port: 8000          │
+└──────────────────────────┘
 ```
 
 ## 🚀 Tech Stack
 
+### Frontend
+- **Framework**: React 18.3.1 with Vite 5.4.0
+- **Routing**: React Router 6.26.0
+- **HTTP Client**: Axios 1.7.2
+- **State Management**: React Context API
+- **Styling**: CSS Modules
+
 ### Backend
 - **API Core**: Node.js 20 + Express.js
 - **AI Service**: Python 3.10 + FastAPI + Uvicorn
-- **Database**: PostgreSQL 15
+- **Database**: SQLite with Prisma ORM
+- **AI Model**: YOLOv8n (Ultralytics)
+- **Image Processing**: OpenCV + Pillow
 
-### Frontend (Planned)
-- React.js / Vue.js / Next.js
-- Tailwind CSS / Material-UI
-- TypeScript
-
-### DevOps
-- Docker & Docker Compose
-- GitHub Actions (CI/CD)
-- Cloud Platform (AWS/Azure/GCP)
+### Development
+- **Version Control**: Git + GitHub
+- **Package Managers**: npm (Node), pip (Python)
+- **Environment**: Windows + PowerShell
 
 ## 📦 Services
 

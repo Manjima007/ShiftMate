@@ -1,5 +1,8 @@
 ﻿const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
+const axios = require('axios');
+const FormData = require('form-data');
 const { PrismaClient } = require('./generated/prisma');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -8,10 +11,36 @@ const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 // Initialize Prisma client
 const prisma = new PrismaClient();
 
+// Configure multer for memory storage (file uploads)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+});
+
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors({
+  origin: '*', // Allow all origins for development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // Routes
 app.get('/', (req, res) => {
@@ -47,6 +76,72 @@ app.get('/api/health', async (req, res) => {
       error: error.message,
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+// Authentication endpoints
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Find user with password field
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    // Direct password comparison (plaintext for now)
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, name, phone, role = 'CLIENT' } = req.body;
+    
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: 'Email, password, and name are required' });
+    }
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+    
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password,
+        name,
+        phone,
+        role
+      }
+    });
+    
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = user;
+    res.status(201).json(userWithoutPassword);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -160,33 +255,44 @@ app.post('/api/bookings', async (req, res) => {
   }
 });
 
-// AI Integration endpoint
-app.post('/api/ai/detect', async (req, res) => {
+// AI Integration endpoint - proxy file upload to AI service
+app.post('/api/ai/detect', upload.single('image'), async (req, res) => {
   try {
-    const { imageUrl, bookingRef } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    const bookingRef = req.body.booking_ref || req.body.bookingRef;
     
-    // Forward request to AI service
-    const response = await fetch(`${aiUrl}/api/v1/ai/detect`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        imageUrl,
-        booking_ref: bookingRef
-      })
+    // Create FormData to forward to AI service
+    const formData = new FormData();
+    
+    // Add image file as a buffer stream
+    formData.append('image', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
     });
     
-    if (!response.ok) {
-      throw new Error(`AI service responded with status: ${response.status}`);
+    // Add booking reference if provided
+    if (bookingRef) {
+      formData.append('booking_ref', bookingRef);
     }
     
-    const aiResult = await response.json();
-    res.json(aiResult);
+    // Forward request to AI service using axios
+    const response = await axios.post(`${aiUrl}/api/v1/ai/detect`, formData, {
+      headers: {
+        ...formData.getHeaders(),
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+    
+    res.json(response.data);
   } catch (error) {
-    res.status(500).json({ 
+    console.error('AI Detection Error:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({ 
       error: 'AI detection failed', 
-      details: error.message 
+      details: error.response?.data?.detail || error.message 
     });
   }
 });
@@ -221,6 +327,8 @@ app.listen(port, () => {
   console.log(`🤖 AI Service: ${aiUrl}`);
   console.log(`📝 Available endpoints:`);
   console.log(`   GET  /api/health - Health check`);
+  console.log(`   POST /api/auth/login - User login`);
+  console.log(`   POST /api/auth/register - User registration`);
   console.log(`   GET  /api/users - List users`);
   console.log(`   POST /api/users - Create user`);
   console.log(`   GET  /api/bookings - List bookings`);

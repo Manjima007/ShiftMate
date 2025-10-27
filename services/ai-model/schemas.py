@@ -14,22 +14,27 @@ class BoundingBox(BaseModel):
 class DetectedItem(BaseModel):
     """Single detected item"""
     item_id: int
-    name: str
+    class_name: str
     category: str
     quantity: int = 1
-    volume_cu_ft: float
+    volume_cubic_meters: float
     is_fragile: bool
-    confidence_score: float
-    bounding_box: Optional[BoundingBox] = None
+    confidence: float
+    bbox: Optional[BoundingBox] = None
+
+    class Config:
+        populate_by_name = True
 
 
 class DetectionResponse(BaseModel):
     """Response for single image detection"""
-    status: str
+    status: str = "completed"
     booking_ref: Optional[str] = None
     detected_items: List[DetectedItem]
-    total_estimated_volume_cu_ft: float
-    processing_time_seconds: float
+    items_detected: int
+    total_volume_cubic_meters: float
+    processing_time_ms: float
+    annotated_image: Optional[str] = None  # Base64 encoded image with bounding boxes
 
 
 class BatchDetectionResponse(BaseModel):
