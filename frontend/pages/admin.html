@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ShiftMate</title>
+    <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="../index.html" class="logo">
+                <span>🚚</span> ShiftMate Admin
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="upload.html">New Booking</a></li>
+                <li><a href="bookings.html">My Bookings</a></li>
+                <li><a href="admin.html">Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero" style="margin-bottom: 2rem;">
+            <h1>⚙️ Admin Dashboard</h1>
+            <p>System overview and management</p>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="alert"></div>
+
+        <!-- Overview Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalBookings">0</div>
+                <div class="stat-label">Total Bookings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalVolume">0 m³</div>
+                <div class="stat-label">Total Volume Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalItems">0</div>
+                <div class="stat-label">Total Items Detected</div>
+            </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🏥 System Health</h2>
+                <button onclick="checkAllSystems()" class="btn btn-secondary">Refresh</button>
+            </div>
+            <div class="grid grid-3">
+                <div style="text-align: center; padding: 1.5rem; background: var(--light); border-radius: 10px;">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;" id="apiHealth">●</div>
+                    <h3>API Server</h3>
+                    <p style="color: #666; font-size: 0.9rem;" id="apiHealthStatus">Checking...</p>
+                </div>
+                <div style="text-align: center; padding: 1.5rem; background: var(--light); border-radius: 10px;">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;" id="aiHealth">●</div>
+                    <h3>AI Service</h3>
+                    <p style="color: #666; font-size: 0.9rem;" id="aiHealthStatus">Checking...</p>
+                </div>
+                <div style="text-align: center; padding: 1.5rem; background: var(--light); border-radius: 10px;">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;" id="dbHealth">●</div>
+                    <h3>Database</h3>
+                    <p style="color: #666; font-size: 0.9rem;" id="dbHealthStatus">Checking...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Management -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">👥 Users Management</h2>
+                <button onclick="loadUsers()" class="btn btn-secondary">Refresh</button>
+            </div>
+            <div id="usersLoading" class="loading show">
+                <div class="spinner"></div>
+                <p>Loading users...</p>
+            </div>
+            <div id="usersContainer"></div>
+        </div>
+
+        <!-- Recent Bookings -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📦 Recent Bookings</h2>
+                <a href="bookings.html" class="btn btn-secondary">View All</a>
+            </div>
+            <div id="bookingsLoading" class="loading show">
+                <div class="spinner"></div>
+                <p>Loading bookings...</p>
+            </div>
+            <div id="bookingsContainer"></div>
+        </div>
+
+        <!-- AI Model Status -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🤖 AI Model Status</h2>
+                <button onclick="loadAIStatus()" class="btn btn-secondary">Refresh</button>
+            </div>
+            <div id="aiStatusContainer">
+                <div class="loading show">
+                    <div class="spinner"></div>
+                    <p>Loading AI status...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supported Items -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📋 Supported Items Catalog</h2>
+                <button onclick="loadSupportedItems()" class="btn btn-secondary">Refresh</button>
+            </div>
+            <div id="itemsLoading" class="loading show">
+                <div class="spinner"></div>
+                <p>Loading supported items...</p>
+            </div>
+            <div id="supportedItemsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/api.js"></script>
+    <script>
+        let users = [];
+        let bookings = [];
+
+        async function checkAllSystems() {
+            // Check API
+            try {
+                const apiHealth = await api.checkHealth();
+                document.getElementById('apiHealth').textContent = '✅';
+                document.getElementById('apiHealth').style.color = 'var(--success)';
+                document.getElementById('apiHealthStatus').textContent = 'Online';
+                
+                // Check database
+                if (apiHealth.database === 'connected') {
+                    document.getElementById('dbHealth').textContent = '✅';
+                    document.getElementById('dbHealth').style.color = 'var(--success)';
+                    document.getElementById('dbHealthStatus').textContent = 'Connected';
+                }
+            } catch (error) {
+                document.getElementById('apiHealth').textContent = '❌';
+                document.getElementById('apiHealth').style.color = 'var(--danger)';
+                document.getElementById('apiHealthStatus').textContent = 'Offline';
+                
+                document.getElementById('dbHealth').textContent = '❓';
+                document.getElementById('dbHealth').style.color = 'var(--warning)';
+                document.getElementById('dbHealthStatus').textContent = 'Unknown';
+            }
+
+            // Check AI
+            try {
+                const aiHealth = await api.checkAIHealth();
+                document.getElementById('aiHealth').textContent = '✅';
+                document.getElementById('aiHealth').style.color = 'var(--success)';
+                document.getElementById('aiHealthStatus').textContent = `${aiHealth.model_name} loaded`;
+            } catch (error) {
+                document.getElementById('aiHealth').textContent = '❌';
+                document.getElementById('aiHealth').style.color = 'var(--danger)';
+                document.getElementById('aiHealthStatus').textContent = 'Offline';
+            }
+        }
+
+        async function loadUsers() {
+            const loading = document.getElementById('usersLoading');
+            const container = document.getElementById('usersContainer');
+            
+            loading.classList.add('show');
+
+            try {
+                users = await api.getUsers();
+                
+                document.getElementById('totalUsers').textContent = users.length;
+
+                container.innerHTML = `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Role</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${users.map(user => `
+                                    <tr>
+                                        <td><strong>${user.name}</strong></td>
+                                        <td>${user.email}</td>
+                                        <td>${user.phone || 'N/A'}</td>
+                                        <td><span class="badge badge-${user.role === 'admin' ? 'danger' : 'info'}">${user.role}</span></td>
+                                        <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-error show">
+                        Failed to load users: ${error.message}
+                    </div>
+                `;
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        async function loadBookings() {
+            const loading = document.getElementById('bookingsLoading');
+            const container = document.getElementById('bookingsContainer');
+            
+            loading.classList.add('show');
+
+            try {
+                bookings = await api.getBookings();
+                
+                // Calculate stats
+                document.getElementById('totalBookings').textContent = bookings.length;
+                
+                const totalVolume = bookings.reduce((sum, booking) => {
+                    return sum + booking.items.reduce((itemSum, item) => 
+                        itemSum + (item.volume * item.quantity), 0);
+                }, 0);
+                document.getElementById('totalVolume').textContent = `${totalVolume.toFixed(2)} m³`;
+
+                const totalItems = bookings.reduce((sum, booking) => 
+                    sum + booking.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+                document.getElementById('totalItems').textContent = totalItems;
+
+                const recentBookings = bookings.slice(0, 10);
+
+                container.innerHTML = `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Customer</th>
+                                    <th>Route</th>
+                                    <th>Items</th>
+                                    <th>Volume</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${recentBookings.map(booking => {
+                                    const bookingVolume = booking.items.reduce((sum, item) => 
+                                        sum + (item.volume * item.quantity), 0);
+                                    return `
+                                        <tr>
+                                            <td><strong>${booking.id.substring(0, 8)}...</strong></td>
+                                            <td>${booking.user.name}</td>
+                                            <td style="font-size: 0.85rem;">
+                                                ${booking.pickupAddress.substring(0, 20)}...<br>
+                                                → ${booking.dropoffAddress.substring(0, 20)}...
+                                            </td>
+                                            <td>${booking.items.length}</td>
+                                            <td>${bookingVolume.toFixed(2)} m³</td>
+                                            <td>${new Date(booking.scheduledDate).toLocaleDateString()}</td>
+                                            <td><span class="badge badge-${getStatusClass(booking.status)}">${booking.status}</span></td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-error show">
+                        Failed to load bookings: ${error.message}
+                    </div>
+                `;
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        async function loadAIStatus() {
+            const container = document.getElementById('aiStatusContainer');
+            
+            try {
+                const health = await api.checkAIHealth();
+                
+                container.innerHTML = `
+                    <div class="grid grid-2">
+                        <div style="padding: 1rem; background: var(--light); border-radius: 10px;">
+                            <h3 style="color: var(--primary); margin-bottom: 0.5rem;">Service Status</h3>
+                            <p><strong>Status:</strong> <span class="badge badge-${health.status === 'healthy' ? 'success' : 'danger'}">${health.status}</span></p>
+                            <p><strong>Model Loaded:</strong> ${health.model_loaded ? '✅ Yes' : '❌ No'}</p>
+                        </div>
+                        <div style="padding: 1rem; background: var(--light); border-radius: 10px;">
+                            <h3 style="color: var(--primary); margin-bottom: 0.5rem;">Model Information</h3>
+                            <p><strong>Model:</strong> ${health.model_name || 'N/A'}</p>
+                            <p><strong>GPU Available:</strong> ${health.gpu_available ? '✅ Yes' : '❌ No (CPU mode)'}</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-error show">
+                        Failed to load AI status: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function loadSupportedItems() {
+            const loading = document.getElementById('itemsLoading');
+            const container = document.getElementById('supportedItemsContainer');
+            
+            loading.classList.add('show');
+
+            try {
+                const items = await api.getSupportedItems();
+                
+                // Group by category
+                const categories = {};
+                items.forEach(item => {
+                    if (!categories[item.category]) {
+                        categories[item.category] = [];
+                    }
+                    categories[item.category].push(item);
+                });
+
+                container.innerHTML = Object.keys(categories).map(category => `
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="color: var(--primary); margin-bottom: 1rem; text-transform: capitalize;">
+                            ${category} (${categories[category].length} items)
+                        </h3>
+                        <div class="grid grid-3">
+                            ${categories[category].map(item => `
+                                <div style="padding: 1rem; background: var(--light); border-radius: 10px; border-left: 3px solid var(--primary);">
+                                    <h4 style="margin-bottom: 0.5rem;">${item.name}</h4>
+                                    <p style="font-size: 0.85rem; color: #666;">
+                                        <strong>Volume:</strong> ${item.avg_volume_cu_ft?.toFixed(2) || 'N/A'} m³<br>
+                                        <strong>Weight:</strong> ${item.weight_estimate_lbs || 'N/A'} lbs<br>
+                                        ${item.is_fragile ? '<span class="badge badge-danger">⚠️ Fragile</span>' : '<span class="badge badge-success">✅ Not Fragile</span>'}
+                                    </p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-error show">
+                        Failed to load supported items: ${error.message}
+                    </div>
+                `;
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        function getStatusClass(status) {
+            const map = {
+                'pending': 'warning',
+                'confirmed': 'success',
+                'in_progress': 'info',
+                'completed': 'success',
+                'cancelled': 'danger'
+            };
+            return map[status] || 'info';
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAllSystems();
+            await loadUsers();
+            await loadBookings();
+            await loadAIStatus();
+            await loadSupportedItems();
+        });
+    </script>
+</body>
+</html>

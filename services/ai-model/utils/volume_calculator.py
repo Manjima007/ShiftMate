@@ -26,20 +26,26 @@ def estimate_volume(class_name: str, bbox_area: float = 0) -> float:
         bbox_area: Bounding box area (for future refinement)
         
     Returns:
-        Estimated volume in cubic feet
+        Estimated volume in cubic meters
     """
+    print(f"  [Volume] Looking for: '{class_name}' in catalog...")
+    
     # Search in catalog
     for category, items in CATALOG.get("categories", {}).items():
+        print(f"  [Volume] Checking category: {category}, items: {list(items.keys())[:3]}...")
         if class_name.lower() in items:
-            return items[class_name.lower()]["volume"]
+            volume = items[class_name.lower()]["volume"]
+            print(f"  [Volume] ✓ Found! Volume: {volume} m³")
+            return volume
     
-    # Default fallback volumes based on bbox area
+    # Default fallback volumes in cubic meters
+    print(f"  [Volume] ✗ Not found in catalog, using fallback")
     if bbox_area > 0.5:  # Large item
-        return 30.0
+        return 2.0
     elif bbox_area > 0.2:  # Medium item
-        return 10.0
+        return 0.5
     else:  # Small item
-        return 3.0
+        return 0.1
 
 
 def get_item_details(class_name: str) -> Tuple[bool, str, float]:
@@ -52,12 +58,17 @@ def get_item_details(class_name: str) -> Tuple[bool, str, float]:
     Returns:
         Tuple of (is_fragile, category, weight)
     """
+    print(f"  [Details] Looking up: '{class_name}'")
+    
     for category, items in CATALOG.get("categories", {}).items():
+        print(f"  [Details] Checking category: {category}")
         if class_name.lower() in items:
             item = items[class_name.lower()]
+            print(f"  [Details] ✓ Found in {category}! Fragile: {item['fragile']}")
             return item["fragile"], category, item.get("weight", 0)
     
-    return False, "unknown", 0
+    print(f"  [Details] ✗ Not found, using defaults")
+    return False, "Miscellaneous", 0
 
 
 def map_yolo_class(class_id: int) -> str:

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShiftMate - AI-Powered Moving & Packing Platform</title>
+    <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span>🚚</span> ShiftMate
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="upload.html">New Booking</a></li>
+                <li><a href="bookings.html">My Bookings</a></li>
+                <li><a href="admin.html">Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>🚚 Welcome to ShiftMate</h1>
+        <p>AI-Powered Moving & Packing Platform</p>
+        <p style="font-size: 1.1rem; margin-top: 1rem; opacity: 0.9;">
+            Upload images of your items and let our AI estimate volumes and create bookings instantly
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- System Status -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🔧 System Status</h2>
+                <button onclick="checkSystemHealth()" class="btn btn-secondary">Refresh</button>
+            </div>
+            <div id="systemStatus" class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="apiStatus">●</div>
+                    <div class="stat-label">API Server</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="aiStatus">●</div>
+                    <div class="stat-label">AI Service</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="dbStatus">●</div>
+                    <div class="stat-label">Database</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-2">
+            <div class="card">
+                <h2 class="card-title">📸 New Booking</h2>
+                <p style="margin: 1rem 0; color: #666;">
+                    Upload images of your furniture and household items. Our AI will automatically detect and estimate volumes.
+                </p>
+                <a href="upload.html" class="btn btn-primary">Start New Booking</a>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">📋 View Bookings</h2>
+                <p style="margin: 1rem 0; color: #666;">
+                    View all your bookings, check status, and manage your moving requests.
+                </p>
+                <a href="bookings.html" class="btn btn-primary">View All Bookings</a>
+            </div>
+        </div>
+
+        <!-- Recent Bookings -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📦 Recent Bookings</h2>
+                <a href="bookings.html" class="btn btn-secondary">View All</a>
+            </div>
+            <div id="recentBookings">
+                <div class="loading show">
+                    <div class="spinner"></div>
+                    <p>Loading bookings...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="grid grid-3">
+            <div class="card text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🤖</div>
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">AI Detection</h3>
+                <p style="color: #666;">
+                    Advanced AI technology to detect furniture and household items from images
+                </p>
+            </div>
+
+            <div class="card text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📏</div>
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">Volume Estimation</h3>
+                <p style="color: #666;">
+                    Accurate volume calculations for moving trucks and pricing estimates
+                </p>
+            </div>
+
+            <div class="card text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">⚡</div>
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">Instant Booking</h3>
+                <p style="color: #666;">
+                    Create bookings in seconds with automated item detection and cataloging
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/api.js"></script>
+    <script>
+        // Check system health on load
+        async function checkSystemHealth() {
+            try {
+                // Check API
+                const apiHealth = await api.checkHealth();
+                document.getElementById('apiStatus').textContent = '✓';
+                document.getElementById('apiStatus').style.color = 'var(--success)';
+                
+                // Check database status from API response
+                if (apiHealth.database === 'connected') {
+                    document.getElementById('dbStatus').textContent = '✓';
+                    document.getElementById('dbStatus').style.color = 'var(--success)';
+                } else {
+                    document.getElementById('dbStatus').textContent = '✗';
+                    document.getElementById('dbStatus').style.color = 'var(--danger)';
+                }
+            } catch (error) {
+                document.getElementById('apiStatus').textContent = '✗';
+                document.getElementById('apiStatus').style.color = 'var(--danger)';
+                document.getElementById('dbStatus').textContent = '?';
+                document.getElementById('dbStatus').style.color = 'var(--warning)';
+            }
+
+            try {
+                // Check AI service
+                const aiHealth = await api.checkAIHealth();
+                if (aiHealth.status === 'healthy') {
+                    document.getElementById('aiStatus').textContent = '✓';
+                    document.getElementById('aiStatus').style.color = 'var(--success)';
+                } else {
+                    document.getElementById('aiStatus').textContent = '⚠';
+                    document.getElementById('aiStatus').style.color = 'var(--warning)';
+                }
+            } catch (error) {
+                document.getElementById('aiStatus').textContent = '✗';
+                document.getElementById('aiStatus').style.color = 'var(--danger)';
+            }
+        }
+
+        // Load recent bookings
+        async function loadRecentBookings() {
+            const container = document.getElementById('recentBookings');
+            
+            try {
+                const bookings = await api.getBookings();
+                
+                if (bookings.length === 0) {
+                    container.innerHTML = `
+                        <p style="text-align: center; color: #999; padding: 2rem;">
+                            No bookings yet. <a href="upload.html" style="color: var(--primary);">Create your first booking</a>
+                        </p>
+                    `;
+                    return;
+                }
+
+                const recentBookings = bookings.slice(0, 5);
+                
+                container.innerHTML = `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Customer</th>
+                                    <th>Pickup Address</th>
+                                    <th>Items</th>
+                                    <th>Scheduled Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${recentBookings.map(booking => `
+                                    <tr>
+                                        <td><strong>${booking.id.substring(0, 8)}...</strong></td>
+                                        <td>${booking.user.name}</td>
+                                        <td>${booking.pickupAddress.substring(0, 30)}...</td>
+                                        <td>${booking.items.length} items</td>
+                                        <td>${utils.formatDate(booking.scheduledDate)}</td>
+                                        <td><span class="badge badge-${getStatusBadgeClass(booking.status)}">${booking.status}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-error show">
+                        Failed to load bookings: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function getStatusBadgeClass(status) {
+            const statusMap = {
+                'pending': 'warning',
+                'confirmed': 'success',
+                'in_progress': 'info',
+                'completed': 'success',
+                'cancelled': 'danger'
+            };
+            return statusMap[status] || 'info';
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSystemHealth();
+            loadRecentBookings();
+        });
+    </script>
+</body>
+</html>
