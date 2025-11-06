@@ -122,10 +122,14 @@ async def detect_objects(
         print(f"\nImage loaded: {original_img.size} ({original_img.mode})")
         print(f"Array shape: {img_array.shape}")
         
-        # Run inference with optimized parameters for furniture detection
-        # Using larger image size and augmentation for better detection
+        # Run inference on original image (YOLO will auto-resize internally)
+        # Adjusted parameters for better multiple object detection:
+        # - conf: Lower confidence threshold to detect more objects
+        # - iou: NMS threshold for handling overlapping boxes
+        # - max_det: Maximum number of detections per image
+        # - agnostic_nms: Class-agnostic NMS for better multi-class detection
+        # - imgsz: Image size for inference (640 is default, larger = more accurate but slower)
         print(f"Running YOLO inference with conf={config.CONFIDENCE_THRESHOLD}, iou={config.IOU_THRESHOLD}")
-        print(f"Model: {config.MODEL_NAME}, Image size for inference: 1280px")
         
         results = current_model(
             img_array, 
@@ -134,8 +138,8 @@ async def detect_objects(
             max_det=300,  # Allow up to 300 detections
             agnostic_nms=False,  # Use class-specific NMS
             verbose=True,  # Enable verbose to see detection info
-            imgsz=1280,  # Larger image size = better detection (especially for large objects like beds)
-            augment=True,  # Enable TTA (Test Time Augmentation) for better accuracy
+            imgsz=640,  # Explicitly set image size for inference
+            augment=False,  # Disable TTA (Test Time Augmentation) for speed
             half=False  # Use FP32 precision (more accurate than FP16)
         )
         

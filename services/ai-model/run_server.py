@@ -33,9 +33,9 @@ if __name__ == "__main__":
     server = uvicorn.Server(config)
     
     print("=" * 50)
-    print("🚀 Starting ShiftMate AI Service")
-    print("📍 Server: http://127.0.0.1:8000")
-    print("📖 API Docs: http://127.0.0.1:8000/docs")
+    print("Starting ShiftMate AI Service")
+    print("Server: http://127.0.0.1:8000")
+    print("API Docs: http://127.0.0.1:8000/docs")
     print("=" * 50)
     
     try:

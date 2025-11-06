@@ -4,5 +4,5 @@ pydantic>=2.10.0
 ultralytics>=8.3.0
 opencv-python>=4.8.1.78
 pillow>=10.2.0
-numpy
+numpy>=1.26.0,<2.0.0
 python-multipart>=0.0.6
